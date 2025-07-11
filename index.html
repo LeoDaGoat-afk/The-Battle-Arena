@@ -1,0 +1,878 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Battle Arena 1.0</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #181c2b;
+            color: #fff;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+        }
+        h1 {
+            margin-bottom: 40px;
+            font-size: 2.5rem;
+            letter-spacing: 2px;
+        }
+        .arena-controls {
+            display: flex;
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+        .arena-controls button {
+            padding: 15px 40px;
+            font-size: 1.2rem;
+            border: none;
+            border-radius: 8px;
+            background: #ff4c60;
+            color: #fff;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .arena-controls button:hover {
+            background: #ff1e3c;
+        }
+        .settings {
+            background: #232946;
+            padding: 20px 40px;
+            border-radius: 10px;
+            min-width: 200px;
+            text-align: center;
+        }
+        .settings-title {
+            font-size: 1.3rem;
+            margin-bottom: 10px;
+            color: #ffb400;
+        }
+        .pick-box {
+            position: fixed;
+            top: 0;
+            bottom: 0;
+            width: 50vw;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background: #232946;
+            border-radius: 0;
+            box-shadow: none;
+            padding: 0;
+            min-width: unset;
+            z-index: 100;
+        }
+        .pick-title {
+            font-size: 1.2rem;
+            margin-bottom: 18px;
+            color: #ffb400;
+            transition: text-shadow 0.3s, color 0.3s;
+        }
+        .pick-title.active {
+            color: #fffbe0;
+            text-shadow: 0 0 16px #ffb400, 0 0 32px #ffb40099;
+            animation: shine 1.2s infinite alternate;
+        }
+        @keyframes shine {
+            0% { text-shadow: 0 0 8px #ffb400, 0 0 16px #ffb40055; }
+            100% { text-shadow: 0 0 24px #ffb400, 0 0 48px #ffb400cc; }
+        }
+        .pick-box.disabled {
+            opacity: 0.5;
+            pointer-events: none;
+            filter: grayscale(0.3);
+        }
+        .arena-list {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            align-items: center;
+        }
+        .map-desc {
+            margin: 32px 0 16px 0;
+            background: #181c2b;
+            border-radius: 8px;
+            padding: 18px 20px;
+            color: #ffb400;
+            font-size: 1.08rem;
+            min-width: 240px;
+            max-width: 340px;
+            text-align: left;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+        }
+        .arena-option {
+            background: #181c2b;
+            border: 1.5px solid #444;
+            border-radius: 10px;
+            padding: 12px 0;
+            color: #fff;
+            font-size: 1.08rem;
+            cursor: pointer;
+            transition: background 0.2s, border 0.2s;
+            width: 90%;
+            max-width: 340px;
+            margin: 0 auto;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.10);
+        }
+        .arena-option:hover {
+            background: #ffb400;
+            color: #232946;
+            border: 1px solid #ffb400;
+        }
+        .char-option {
+            background: #181c2b;
+            border: 1.5px solid #444;
+            border-radius: 10px;
+            padding: 10px 20px;
+            color: #fff;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: background 0.2s, border 0.2s;
+            width: 100%;
+            max-width: none;
+            margin: 0 auto;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.10);
+            min-height: 35px;
+            text-align: center;
+        }
+        .char-option:hover {
+            background: #ffb400;
+            color: #232946;
+            border: 1px solid #ffb400;
+        }
+    </style>
+</head>
+<body>
+    <div id="divider" style="display:none; position:fixed; top:0; left:50%; transform:translateX(-50%); width:2px; height:100vh; background:#181c2b; z-index:120;"></div>
+    <div id="mapLabel" style="display:none; position:fixed; left:50%; bottom:40px; transform:translateX(-50%); z-index:150; font-size:3rem; color:#ffb400; font-weight:bold; letter-spacing:4px; pointer-events:none; user-select:none;">Maps</div>
+    <div id="pickBox" class="pick-box" style="display:none; left:0;">
+        <div id="pickTitle1" class="pick-title">Player 1 picking:</div>
+        <div class="arena-list">
+            <button class="arena-option" data-map="lava">熔岩深渊 / Lava Abyss</button>
+            <button class="arena-option" data-map="frost">寒霜要塞 / Frost Citadel</button>
+            <button class="arena-option" data-map="static">静电穹顶 / Static Dome</button>
+            <button class="arena-option" data-map="gale">疾风高塔 / Gale Spire</button>
+            <button class="arena-option" data-map="alchemy">炼金工坊 / Alchemy Workshop</button>
+            <button class="arena-option" data-map="starfall">碎星轨道 / Starfall Orbit</button>
+            <button class="arena-option" data-map="elder">古树圣坛 / Elder Grove</button>
+            <button class="arena-option" data-map="dune">沙漠旋风场 / Dune Cyclone</button>
+        </div>
+        <div id="desc1" class="map-desc" style="display:none;"></div>
+    </div>
+    <div id="pickBox2" class="pick-box" style="display:none; left:auto; right:0;">
+        <div id="pickTitle2" class="pick-title">Player 2 picking:</div>
+        <div class="arena-list">
+            <button class="arena-option" data-map="lava">熔岩深渊 / Lava Abyss</button>
+            <button class="arena-option" data-map="frost">寒霜要塞 / Frost Citadel</button>
+            <button class="arena-option" data-map="static">静电穹顶 / Static Dome</button>
+            <button class="arena-option" data-map="gale">疾风高塔 / Gale Spire</button>
+            <button class="arena-option" data-map="alchemy">炼金工坊 / Alchemy Workshop</button>
+            <button class="arena-option" data-map="starfall">碎星轨道 / Starfall Orbit</button>
+            <button class="arena-option" data-map="elder">古树圣坛 / Elder Grove</button>
+            <button class="arena-option" data-map="dune">沙漠旋风场 / Dune Cyclone</button>
+        </div>
+        <div id="desc2" class="map-desc" style="display:none;"></div>
+    </div>
+    <div id="mapModal" style="display:none; position:fixed; top:50%; left:50%; transform:translate(-50%,-50%); z-index:200; background:#232946; border-radius:16px; box-shadow:0 8px 32px rgba(0,0,0,0.25); padding:38px 38px 30px 38px; min-width:600px; max-width:80vw; color:#ffb400; font-size:1.18rem; text-align:left;">
+        <div id="modalContent"></div>
+        <div style="margin-top:28px; display:flex; gap:24px; justify-content:center;">
+            <button id="confirmModal1" style="padding:10px 36px; font-size:1.1rem; border:none; border-radius:8px; background:#ffb400; color:#232946; font-weight:bold; cursor:pointer; display:none;">Confirm</button>
+            <button id="confirmModal2" style="padding:10px 36px; font-size:1.1rem; border:none; border-radius:8px; background:#ffb400; color:#232946; font-weight:bold; cursor:pointer; display:none;">Confirm</button>
+            <button id="closeModal" style="padding:10px 36px; font-size:1.1rem; border:none; border-radius:8px; background:#ffb400; color:#232946; font-weight:bold; cursor:pointer;">Close</button>
+        </div>
+    </div>
+    <div id="battleScreen" style="display:none; position:fixed; top:0; left:0; width:100vw; height:100vh; background:#181c2b; z-index:300;">
+        <div id="countdown" style="position:absolute; top:40px; left:50%; transform:translateX(-50%); color:#ffb400; font-size:2rem; font-weight:bold; text-align:center;">
+            Time to pick your brawlers in 3...
+        </div>
+        <div style="position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); color:#ffb400; text-align:center; max-width:80vw;">
+            <div id="selectedMapName" style="font-size:2.5rem; margin-bottom:24px; font-weight:bold;"></div>
+            <div id="selectedMapDesc" style="font-size:1.2rem; color:#fff; line-height:1.6;"></div>
+        </div>
+    </div>
+    <div id="mapScreen" style="display:none; position:fixed; top:0; left:0; width:100vw; height:100vh; background:#181c2b; z-index:400;">
+        <div id="brawlersLabel" style="position:absolute; top:24px; left:50%; transform:translateX(-50%); z-index:410; color:#ffb400; font-size:2.2rem; font-weight:bold; letter-spacing:2px; background:#232946; padding:10px 48px; border-radius:12px; box-shadow:0 2px 12px #0004;">Brawlers</div>
+        <div id="brawlerModal" style="display:none; position:fixed; top:50%; left:50%; transform:translate(-50%,-50%); z-index:420; background:#232946; border-radius:16px; box-shadow:0 8px 32px rgba(0,0,0,0.25); padding:38px 38px 30px 38px; min-width:400px; max-width:40vw; color:#ffb400; font-size:1.1rem; text-align:left;">
+            <div id="brawlerModalContent"></div>
+            <div style="margin-top:28px; display:flex; gap:24px; justify-content:center;">
+                <button id="brawlerConfirm" style="padding:10px 36px; font-size:1.1rem; border:none; border-radius:8px; background:#ffb400; color:#232946; font-weight:bold; cursor:pointer;">Confirm</button>
+                <button id="brawlerCancel" style="padding:10px 36px; font-size:1.1rem; border:none; border-radius:8px; background:#ffb400; color:#232946; font-weight:bold; cursor:pointer;">Cancel</button>
+            </div>
+        </div>
+        <div style="position:fixed; top:0; left:0; width:50vw; height:100vh; background:#232946; display:flex; flex-direction:column; align-items:center; justify-content:flex-start; padding-top:60px;">
+            <div style="font-size:1.2rem; margin-bottom:18px; color:#ffb400;">Player 1 picking:</div>
+            <div class="arena-list">
+                <button class="char-option" data-char="flame">烈焰射手 Flame Archer</button>
+                <button class="char-option" data-char="frost">寒霜守卫 Frost Guardian</button>
+                <button class="char-option" data-char="shadow">影舞者 Shadow Dancer</button>
+                <button class="char-option" data-char="iron">钢铁巨像 Iron Golem</button>
+                <button class="char-option" data-char="volt">闪电守望 Volt Warden</button>
+                <button class="char-option" data-char="wind">疾风击手 Wind Striker</button>
+                <button class="char-option" data-char="alchemist">奥术炼金师 Arcane Alchemist</button>
+                <button class="char-option" data-char="monk">赤焰武僧 Crimson Monk</button>
+                <button class="char-option" data-char="stone">磐石哨兵 Stone Sentinel</button>
+                <button class="char-option" data-char="star">星辉破空者 Star Piercer</button>
+            </div>
+        </div>
+        <div style="position:fixed; top:0; right:0; width:50vw; height:100vh; background:#232946; display:flex; flex-direction:column; align-items:center; justify-content:flex-start; padding-top:60px; border-left:2px solid #181c2b;">
+            <div style="font-size:1.2rem; margin-bottom:18px; color:#ffb400;">Player 2 picking:</div>
+            <div class="arena-list">
+                <button class="char-option" data-char="flame">烈焰射手 Flame Archer</button>
+                <button class="char-option" data-char="frost">寒霜守卫 Frost Guardian</button>
+                <button class="char-option" data-char="shadow">影舞者 Shadow Dancer</button>
+                <button class="char-option" data-char="iron">钢铁巨像 Iron Golem</button>
+                <button class="char-option" data-char="volt">闪电守望 Volt Warden</button>
+                <button class="char-option" data-char="wind">疾风击手 Wind Striker</button>
+                <button class="char-option" data-char="alchemist">奥术炼金师 Arcane Alchemist</button>
+                <button class="char-option" data-char="monk">赤焰武僧 Crimson Monk</button>
+                <button class="char-option" data-char="stone">磐石哨兵 Stone Sentinel</button>
+                <button class="char-option" data-char="star">星辉破空者 Star Piercer</button>
+            </div>
+        </div>
+    </div>
+    <h1>Battle Arena 1.0</h1>
+    <div class="arena-controls">
+        <button id="startBtn">Start</button>
+        <div class="settings">
+            <div class="settings-title">Settings</div>
+            <div>(Coming soon...)</div>
+        </div>
+    </div>
+    <script>
+        const mapDescriptions = {
+            lava: `Coming soon...`,
+            frost: `Coming soon...`,
+            static: `Coming soon...`,
+            gale: `Coming soon...`,
+            alchemy: `Coming soon...`,
+            starfall: `Coming soon...`,
+            elder: `Coming soon...`,
+            dune: `狂风带动沙墙环绕，视线受限同时移动速度+10%。<br><span style='color:#fff'>Whirling sand walls cut visibility while granting +10% move speed.</span>`
+        };
+        const charDescriptions = {
+            flame: `1. 烈焰射手 Flame Archer<br><br>生命值 1700 Health 1700<br><br>普攻 烈矢连珠 / Flame Volley：每 0.35 秒射出火矢 85 伤 (~243 DPS)<br><span style='color:#fff'>Basic Flame Volley: shoots flaming arrow every 0.35 s, 85 DMG (~243 DPS)</span><br><br>大招 火流星雨 / Meteor Barrage：25 秒冷却，6 陨火×120 = ≈720<br><span style='color:#fff'>Ultimate Meteor Barrage: 25 s CD, 6 meteors×120 ≈ 720 total</span>`,
+            frost: `2. 寒霜守卫 Frost Guardian<br><br>生命值 2000 Health 2000<br><br>普攻 寒矛突袭 / Glacial Thrust：0.45 秒/矛 80 伤并叠减速 (~178 DPS)<br><span style='color:#fff'>Basic Glacial Thrust: spear every 0.45 s, 80 DMG + slow (~178 DPS)</span><br><br>大招 极寒冻结 / Absolute Zero：22 秒冷却，瞬冰+爆裂 560<br><span style='color:#fff'>Ultimate Absolute Zero: 22 s CD, freeze then shatter 560 DMG</span>`,
+            shadow: `3. 影舞者 Shadow Dancer<br><br>生命值 1500 Health 1500<br><br>普攻 夜影三连 / Nightfall Trio：0.3 秒内3×60，链间CD 1 秒 (~180 DPS)<br><span style='color:#fff'>Basic Nightfall Trio: 3×60 in 0.3 s, 1 s chain CD (~180 DPS)</span><br><br>大招 暗影分身 / Shadow Clones：20 秒冷却，3 分身共 600<br><span style='color:#fff'>Ultimate Shadow Clones: 20 s CD, clones deal 600 total</span>`,
+            iron: `4. 钢铁巨像 Iron Golem<br><br>生命值 2200 Health 2200<br><br>普攻 重锤铁拳 / Iron Knuckle：0.6 秒/拳 110 伤并击退 (~183 DPS)<br><span style='color:#fff'>Basic Iron Knuckle: punch every 0.6 s, 110 DMG + knock-back (~183 DPS)</span><br><br>大招 地震践踏 / Seismic Stomp：23 秒冷却，AOE 500 伤+1.5 s眩晕<br><span style='color:#fff'>Ultimate Seismic Stomp: 23 s CD, 500 AOE + 1.5 s stun</span>`,
+            volt: `5. 闪电守望 Volt Warden<br><br>生命值 1800 Health 1800<br><br>普攻 连锁电弧 / Arc Chain：0.4 秒/弧 75 伤，可跳链 (~188 DPS)<br><span style='color:#fff'>Basic Arc Chain: 75 DMG every 0.4 s, chains between foes (~188 DPS)</span><br><br>大招 雷云领域 / Thunder Dome：24 秒冷却，6 秒70 DPS＝420<br><span style='color:#fff'>Ultimate Thunder Dome: 24 s CD, 70 DPS for 6 s (420 total)</span>`,
+            wind: `6. 疾风击手 Wind Striker<br><br>生命值 1600 Health 1600<br><br>普攻 旋风飞镖 / Cyclone Shuriken：0.35 秒/枚 60–90 伤 (~214 DPS)<br><span style='color:#fff'>Basic Cyclone Shuriken: 60–90 DMG every 0.35 s (~214 DPS)</span><br><br>大招 飓风冲锋 / Hurricane Dash：22 秒冷却，冲刺250+风墙200＝450<br><span style='color:#fff'>Ultimate Hurricane Dash: 22 s CD, 250 dash + wind-wall 200 = 450</span>`,
+            alchemist: `7. 奥术炼金师 Arcane Alchemist<br><br>生命值 1700 Health 1700<br><br>普攻 爆裂药瓶 / Volatile Flask：0.5 秒/瓶 100 AOE (~200 DPS)<br><span style='color:#fff'>Basic Volatile Flask: 100 AOE every 0.5 s (~200 DPS)</span><br><br>大招 元素超载 / Elemental Overload：27 秒冷却，3 瓶×250＝750<br><span style='color:#fff'>Ultimate Elemental Overload: 27 s CD, 3 flasks×250 = 750</span>`,
+            monk: `8. 赤焰武僧 Crimson Monk<br><br>生命值 1750 Health 1750<br><br>普攻 炎影连掌 / Ember Palm：0.25 秒/掌 55；第3击+45流血 (~220 DPS+DoT)<br><span style='color:#fff'>Basic Ember Palm: 55 every 0.25 s; 3rd hit adds 45 bleed (~220 DPS+DoT)</span><br><br>大招 真炎爆体 / Inferno Trance：26 秒冷却，狂暴6 秒≈480<br><span style='color:#fff'>Ultimate Inferno Trance: 26 s CD, berserk 6 s ≈480 extra</span>`,
+            stone: `9. 磐石哨兵 Stone Sentinel<br><br>生命值 2100 Health 2100<br><br>普攻 碎岩掷锤 / Quarry Throw：0.6 秒/掷 100 伤并获50盾 (~167 DPS)<br><span style='color:#fff'>Basic Quarry Throw: 100 DMG every 0.6 s + 50-HP shield (~167 DPS)</span><br><br>大招 岩甲护壁 / Bastion Bulwark：24 秒冷却，爆裂200+墙吸600<br><span style='color:#fff'>Ultimate Bastion Bulwark: 24 s CD, 200 burst + wall absorbs 600</span>`,
+            star: `10. 星辉破空者 Star Piercer<br><br>生命值 1500 Health 1500<br><br>普攻 星光贯射 / Stellar Beam：0.4 秒/束 95 穿透 (~238 DPS)<br><span style='color:#fff'>Basic Stellar Beam: 95 piercing every 0.4 s (~238 DPS)</span><br><br>大招 星陨光枪 / Celestial Lance：30 秒冷却，蓄力激光800<br><span style='color:#fff'>Ultimate Celestial Lance: 30 s CD, charge then 800-DMG laser</span>`
+        };
+
+        document.getElementById('startBtn').onclick = function() {
+            document.getElementById('pickBox').style.display = 'block';
+            document.getElementById('pickBox2').style.display = 'block';
+            document.querySelector('h1').style.display = 'none';
+            document.querySelector('.arena-controls').style.display = 'none';
+            document.getElementById('mapLabel').style.display = 'block';
+            document.getElementById('divider').style.display = 'block';
+            // Only Player 1 can pick at first
+            document.getElementById('pickBox').classList.remove('disabled');
+            document.getElementById('pickBox2').classList.add('disabled');
+            document.getElementById('pickTitle1').classList.add('active');
+            document.getElementById('pickTitle2').classList.remove('active');
+        };
+
+        // Player 1 map pick description
+        document.querySelectorAll('#pickBox .arena-option').forEach(btn => {
+            btn.onclick = function() {
+                const map = btn.getAttribute('data-map');
+                const desc = mapDescriptions[map];
+                // Show modal in center with map ability
+                document.getElementById('modalContent').innerHTML = desc;
+                document.getElementById('mapModal').style.display = 'block';
+                document.getElementById('confirmModal1').style.display = 'inline-block';
+                document.getElementById('confirmModal2').style.display = 'none';
+                // Store selected map for Player 1
+                window._player1Map = map;
+            };
+        });
+        // Player 2 map pick description
+        document.querySelectorAll('#pickBox2 .arena-option').forEach(btn => {
+            btn.onclick = function() {
+                const map = btn.getAttribute('data-map');
+                const desc = mapDescriptions[map];
+                // Show modal in center with map ability
+                document.getElementById('modalContent').innerHTML = desc;
+                document.getElementById('mapModal').style.display = 'block';
+                document.getElementById('confirmModal1').style.display = 'none';
+                document.getElementById('confirmModal2').style.display = 'inline-block';
+                // Store selected map for Player 2
+                window._player2Map = map;
+            };
+        });
+        // Close modal handler
+        document.getElementById('closeModal').onclick = function() {
+            document.getElementById('mapModal').style.display = 'none';
+        };
+
+        // Confirm button logic for Player 1
+        document.getElementById('confirmModal1').onclick = function() {
+            // Hide modal
+            document.getElementById('mapModal').style.display = 'none';
+            // Disable Player 1, enable Player 2
+            document.getElementById('pickBox').classList.add('disabled');
+            document.getElementById('pickBox2').classList.remove('disabled');
+            document.getElementById('pickTitle1').classList.remove('active');
+            document.getElementById('pickTitle2').classList.add('active');
+        };
+        // Confirm button logic for Player 2
+        document.getElementById('confirmModal2').onclick = function() {
+            document.getElementById('mapModal').style.display = 'none';
+            // Check if both players selected the same map
+            if (window._player1Map && window._player2Map) {
+                let chosenMap = window._player1Map;
+                if (window._player1Map !== window._player2Map) {
+                    // 50/50 random pick
+                    chosenMap = Math.random() < 0.5 ? window._player1Map : window._player2Map;
+                }
+                // Go to battle screen with chosenMap
+                document.getElementById('pickBox').style.display = 'none';
+                document.getElementById('pickBox2').style.display = 'none';
+                document.getElementById('divider').style.display = 'none';
+                document.getElementById('mapLabel').style.display = 'none';
+                const mapNames = {
+                    lava: '熔岩深渊 / Lava Abyss',
+                    frost: '寒霜要塞 / Frost Citadel',
+                    static: '静电穹顶 / Static Dome',
+                    gale: '疾风高塔 / Gale Spire',
+                    alchemy: '炼金工坊 / Alchemy Workshop',
+                    starfall: '碎星轨道 / Starfall Orbit',
+                    elder: '古树圣坛 / Elder Grove',
+                    dune: '沙漠旋风场 / Dune Cyclone'
+                };
+                document.getElementById('selectedMapName').textContent = mapNames[chosenMap];
+                document.getElementById('selectedMapDesc').innerHTML = mapDescriptions[chosenMap];
+                document.getElementById('battleScreen').style.display = 'block';
+                // Start countdown
+                let count = 3;
+                const countdownElement = document.getElementById('countdown');
+                countdownElement.textContent = `Time to pick your brawlers in 3...`;
+                const countdownInterval = setInterval(() => {
+                    count--;
+                    if (count > 0) {
+                        countdownElement.textContent = `Time to pick your brawlers in ${count}...`;
+                    } else {
+                        countdownElement.textContent = 'Time to pick your brawlers in 1...';
+                        setTimeout(() => {
+                            clearInterval(countdownInterval);
+                            // Hide battle screen and show blank map screen
+                            document.getElementById('battleScreen').style.display = 'none';
+                            document.getElementById('mapScreen').style.display = 'block';
+                        }, 1000);
+                    }
+                }, 1000);
+            }
+        };
+
+        // Brawler modal logic for both players
+        let brawlerTurn = 1; // 1 for Player 1, 2 for Player 2
+        function setBrawlerTurn(turn) {
+            brawlerTurn = turn;
+            // Enable/disable columns
+            const leftCol = document.querySelector('#mapScreen > div:nth-of-type(3)');
+            const rightCol = document.querySelector('#mapScreen > div:nth-of-type(4)');
+            if (turn === 1) {
+                leftCol.style.pointerEvents = '';
+                leftCol.style.opacity = '1';
+                rightCol.style.pointerEvents = 'none';
+                rightCol.style.opacity = '0.5';
+            } else {
+                leftCol.style.pointerEvents = 'none';
+                leftCol.style.opacity = '0.5';
+                rightCol.style.pointerEvents = '';
+                rightCol.style.opacity = '1';
+            }
+        }
+        setBrawlerTurn(1);
+        let pickedBrawler1 = null;
+        let pickedBrawler2 = null;
+        document.querySelectorAll('#mapScreen .arena-list').forEach((list, idx) => {
+            list.querySelectorAll('.char-option').forEach(btn => {
+                btn.onclick = function() {
+                    if ((brawlerTurn === 1 && idx === 0) || (brawlerTurn === 2 && idx === 1)) {
+                        const char = btn.getAttribute('data-char');
+                        const desc = charDescriptions[char];
+                        document.getElementById('brawlerModalContent').innerHTML = desc;
+                        document.getElementById('brawlerModal').style.display = 'block';
+                        document.getElementById('brawlerConfirm').setAttribute('data-char', char);
+                        document.getElementById('brawlerConfirm').setAttribute('data-turn', brawlerTurn);
+                    }
+                };
+            });
+        });
+        document.getElementById('brawlerCancel').onclick = function() {
+            document.getElementById('brawlerModal').style.display = 'none';
+        };
+        document.getElementById('brawlerConfirm').onclick = function() {
+            const char = this.getAttribute('data-char');
+            const turn = Number(this.getAttribute('data-turn'));
+            document.getElementById('brawlerModal').style.display = 'none';
+            if (turn === 1) {
+                pickedBrawler1 = char;
+                const stats = getBrawlerStats(char);
+                dunePlayer1.maxHealth = dunePlayer1.health = stats.health;
+                dunePlayer1.attackDmg = stats.dmg;
+                dunePlayer1.attackCd = stats.cd;
+                dunePlayer1.attackCooldown = 0;
+                setBrawlerTurn(2);
+            } else {
+                pickedBrawler2 = char;
+                const stats = getBrawlerStats(char);
+                dunePlayer2.maxHealth = dunePlayer2.health = stats.health;
+                dunePlayer2.attackDmg = stats.dmg;
+                dunePlayer2.attackCd = stats.cd;
+                dunePlayer2.attackCooldown = 0;
+                showDuneBlankIfNeeded();
+            }
+        };
+
+        // White blank page for Dune Cyclone after both brawlers picked
+        const duneBlank = document.createElement('div');
+        duneBlank.id = 'duneBlank';
+        duneBlank.style.display = 'none';
+        duneBlank.style.position = 'fixed';
+        duneBlank.style.top = '0';
+        duneBlank.style.left = '0';
+        duneBlank.style.width = '100vw';
+        duneBlank.style.height = '100vh';
+        duneBlank.style.background = 'linear-gradient(270deg, #ff5f6d, #ffc371, #47e7fa, #7bffb2, #f7baff, #ff5f6d)';
+        duneBlank.style.backgroundSize = '1200% 1200%';
+        duneBlank.style.animation = 'rainbowBG 8s ease infinite';
+        duneBlank.style.zIndex = '9999';
+        document.body.appendChild(duneBlank);
+
+        // Add rainbow animation keyframes
+        const styleSheet = document.createElement('style');
+        styleSheet.innerHTML = `@keyframes rainbowBG {
+            0% {background-position:0% 50%}
+            50% {background-position:100% 50%}
+            100% {background-position:0% 50%}
+        }`;
+        document.head.appendChild(styleSheet);
+
+        // Random colors for players
+        const playerColors = [
+          '#ff4c60', '#47e7fa', '#7bffb2', '#f7baff', '#ffc371', 
+          '#ff5f6d', '#4ecdc4', '#45b7d1', '#96ceb4', '#feca57'
+        ];
+        const player1Color = playerColors[Math.floor(Math.random() * playerColors.length)];
+        const player2Color = playerColors[Math.floor(Math.random() * playerColors.length)];
+        
+        // Player 1 state for Dune Cyclone
+        let dunePlayer1 = {
+          x: 250,
+          y: 350,
+          vx: 0,
+          vy: 0,
+          facing: 'right',
+          onGround: false,
+          health: 1700,
+          maxHealth: 1700,
+          color: player1Color,
+          attackDmg: 100, // Added
+          attackCd: 1, // Added
+          attackCooldown: 0 // Added
+        };
+        // Player 2 state for Dune Cyclone
+        let dunePlayer2 = {
+          x: 750,
+          y: 370,
+          vx: 0,
+          vy: 0,
+          facing: 'right',
+          onGround: false,
+          health: 1700,
+          maxHealth: 1700,
+          color: player2Color,
+          attackDmg: 100, // Added
+          attackCd: 1, // Added
+          attackCooldown: 0 // Added
+        };
+        let duneGravity = 1.2;
+        let duneJumpPower = -18;
+        let duneMoveSpeed = 7;
+        let duneBlocks = [
+  { x: 120, y: 470, w: 180, h: 24, angle: 0 }, // left
+  { x: 420, y: 420, w: 180, h: 24, angle: 0 }, // middle (higher)
+  { x: 720, y: 470, w: 180, h: 24, angle: 0 }  // right
+];
+let duneFloor = { x: 0, y: 580, w: 1000, h: 30 };
+let duneWalls = [
+  { x: 0, y: 0, w: 20, h: 600 }, // Left wall
+  { x: 980, y: 0, w: 20, h: 600 } // Right wall
+];
+        let duneKeys = { a: false, d: false, w: false };
+        let duneKeys2 = { left: false, right: false, up: false };
+
+        // Add walking animation state for both players
+        let walkFrame1 = 0, walkTimer1 = 0;
+        let walkFrame2 = 0, walkTimer2 = 0;
+
+        // Add sword swing state for both players
+        let swordSwing1 = false, swordSwing2 = false;
+        let swordSwingTimer1 = 0, swordSwingTimer2 = 0;
+
+        // Parse brawler health, basic attack damage, and cooldown from description
+        function getBrawlerStats(char) {
+          if (!char) return { health: 1700, dmg: 100, cd: 1 };
+          const desc = charDescriptions[char];
+          // Health
+          const healthMatch = desc && desc.match(/Health (\d+)/);
+          const health = healthMatch ? parseInt(healthMatch[1], 10) : 1700;
+          // Basic attack damage
+          let dmg = 100;
+          let cd = 1;
+          // Try to match "每 X 秒.*?(\d+) 伤" or "(\d+) DMG" or "(\d+)伤"
+          const dmgMatch = desc && desc.match(/每 ([\d.]+) 秒.*?(\d+) ?伤/);
+          if (dmgMatch) {
+            cd = parseFloat(dmgMatch[1]);
+            dmg = parseInt(dmgMatch[2], 10);
+          } else {
+            // fallback: try "(\d+) DMG"
+            const dmgMatch2 = desc && desc.match(/(\d+) ?DMG/);
+            if (dmgMatch2) dmg = parseInt(dmgMatch2[1], 10);
+            // fallback: try "(\d+)[伤|伤害]"
+            const dmgMatch3 = desc && desc.match(/(\d+)[伤|伤害]/);
+            if (dmgMatch3) dmg = parseInt(dmgMatch3[1], 10);
+          }
+          return { health, dmg, cd };
+        }
+
+        function showDuneBlankIfNeeded() {
+            if (window._player1Map && window._player2Map) {
+                let chosenMap = window._player1Map;
+                if (window._player1Map !== window._player2Map) {
+                    chosenMap = Math.random() < 0.5 ? window._player1Map : window._player2Map;
+                }
+                if (chosenMap === 'dune') {
+                    document.getElementById('mapScreen').style.display = 'none';
+                    duneBlank.style.display = 'block';
+                    // Add SVG for blocks and people if Dune Cyclone
+                    duneBlank.innerHTML = `<svg id="duneSVG" width="100vw" height="100vh" viewBox="0 0 1000 600" style="position:absolute;top:0;left:0;width:100vw;height:100vh;"></svg>`;
+                    renderDuneScene();
+                    setupDuneControls();
+                }
+            }
+        }
+
+        // Render Dune Cyclone scene
+        function renderDuneScene() {
+          const svg = document.getElementById('duneSVG');
+          if (!svg) return;
+          svg.innerHTML = '';
+          // Draw walls
+          duneWalls.forEach(wall => {
+            svg.innerHTML += `<rect x="${wall.x}" y="${wall.y}" width="${wall.w}" height="${wall.h}" fill="#444" stroke="#222" stroke-width="2"/>`;
+          });
+          // Draw blocks
+          duneBlocks.forEach(block => {
+            svg.innerHTML += `<rect x="${block.x}" y="${block.y}" width="${block.w}" height="${block.h}" fill="#fffbe0" stroke="#222" stroke-width="4" rx="8" transform="rotate(${block.angle} ${block.x + block.w/2} ${block.y + block.h/2})"/>`;
+          });
+          // Draw floor
+          svg.innerHTML += `<rect x="${duneFloor.x}" y="${duneFloor.y}" width="${duneFloor.w}" height="${duneFloor.h}" fill="#fffbe0" stroke="#222" stroke-width="4" rx="12"/>`;
+
+          // Health bar function
+          function healthBar(x, y, w, h, health, maxHealth, color) {
+            const pct = Math.max(0, Math.min(1, health / maxHealth));
+            return `
+              <rect x="${x}" y="${y}" width="${w}" height="${h}" fill="#222" rx="4"/>
+              <rect x="${x}" y="${y}" width="${w * pct}" height="${h}" fill="${color}" rx="4"/>
+              <text x="${x + w/2}" y="${y + h/2 + 6}" text-anchor="middle" font-size="18" fill="#fff" font-weight="bold">${health} / ${maxHealth}</text>
+            `;
+          }
+
+          // Draw Player 1
+          let p1 = dunePlayer1;
+          let swordX = p1.facing === 'right' ? p1.x+32 : p1.x-32;
+          let swordAngle = p1.facing === 'right' ? 30 : -30;
+          // For Player 1:
+          let footYOffsetL = walkFrame1 === 1 ? 4 : 0;
+          let footYOffsetR = walkFrame1 === 0 ? 4 : 0;
+          svg.innerHTML += `
+            <g>
+              ${healthBar(p1.x-40, p1.y-60, 80, 16, p1.health, p1.maxHealth, p1.color)}
+              <circle cx="${p1.x}" cy="${p1.y}" r="28" fill="#232946" stroke="${p1.color}" stroke-width="4"/>
+              <!-- Face -->
+              <ellipse cx="${p1.x-8}" cy="${p1.y-4}" rx="3.5" ry="5" fill="#fff"/>
+              <ellipse cx="${p1.x+8}" cy="${p1.y-4}" rx="3.5" ry="5" fill="#fff"/>
+              <path d="M${p1.x-7},${p1.y+8} Q${p1.x},${p1.y+16} ${p1.x+7},${p1.y+8}" stroke="#fff" stroke-width="2" fill="none"/>
+              <!-- Body -->
+              <rect x="${p1.x-10}" y="${p1.y+28}" width="20" height="40" rx="8" fill="${p1.color}"/>
+              <!-- Feet -->
+              <ellipse cx="${p1.x-6}" cy="${p1.y+70+footYOffsetL}" rx="6" ry="4" fill="#232946" stroke="${p1.color}" stroke-width="2"/>
+              <ellipse cx="${p1.x+6}" cy="${p1.y+70+footYOffsetR}" rx="6" ry="4" fill="#232946" stroke="${p1.color}" stroke-width="2"/>
+              <!-- Leg -->
+              <rect x="${p1.x-3}" y="${p1.y+40}" width="6" height="32" rx="2" fill="#232946"/>
+              <!-- Sword -->
+              <g transform="rotate(${swordAngle} ${swordX} ${p1.y+65})">
+                <rect x="${swordX-2}" y="${p1.y+50}" width="4" height="30" rx="2" fill="#fff" stroke="#bbb" stroke-width="2"/>
+                <rect x="${swordX-1}" y="${p1.y+50}" width="2" height="30" rx="1" fill="#bfa76f"/>
+              </g>
+            </g>
+          `;
+          // For Player 1 cooldown display
+          let cd1 = dunePlayer1.attackCooldown > 0 ? (dunePlayer1.attackCooldown/60).toFixed(2) : 'Ready';
+          svg.innerHTML += `<text x="${p1.x}" y="${p1.y-75}" text-anchor="middle" font-size="16" fill="#fff" font-weight="bold">CD: ${cd1}</text>`;
+          // For Player 2 cooldown display
+          let cd2 = dunePlayer2.attackCooldown > 0 ? (dunePlayer2.attackCooldown/60).toFixed(2) : 'Ready';
+          svg.innerHTML += `<text x="${p2.x}" y="${p2.y-75}" text-anchor="middle" font-size="16" fill="#fff" font-weight="bold">CD: ${cd2}</text>`;
+          // Draw Player 2
+          let p2 = dunePlayer2;
+          let swordX2 = p2.facing === 'right' ? p2.x+32 : p2.x-32;
+          let swordAngle2 = p2.facing === 'right' ? 30 : -30;
+          // For Player 2:
+          let footYOffsetL2 = walkFrame2 === 1 ? 4 : 0;
+          let footYOffsetR2 = walkFrame2 === 0 ? 4 : 0;
+          svg.innerHTML += `
+            <g>
+              ${healthBar(p2.x-40, p2.y-60, 80, 16, p2.health, p2.maxHealth, p2.color)}
+              <circle cx="${p2.x}" cy="${p2.y}" r="28" fill="#232946" stroke="${p2.color}" stroke-width="4"/>
+              <!-- Face -->
+              <ellipse cx="${p2.x-8}" cy="${p2.y-4}" rx="3.5" ry="5" fill="#fff"/>
+              <ellipse cx="${p2.x+8}" cy="${p2.y-4}" rx="3.5" ry="5" fill="#fff"/>
+              <path d="M${p2.x-7},${p2.y+8} Q${p2.x},${p2.y+16} ${p2.x+7},${p2.y+8}" stroke="#fff" stroke-width="2" fill="none"/>
+              <!-- Body -->
+              <rect x="${p2.x-10}" y="${p2.y+28}" width="20" height="40" rx="8" fill="${p2.color}"/>
+              <!-- Feet -->
+              <ellipse cx="${p2.x-6}" cy="${p2.y+70+footYOffsetL2}" rx="6" ry="4" fill="#232946" stroke="${p2.color}" stroke-width="2"/>
+              <ellipse cx="${p2.x+6}" cy="${p2.y+70+footYOffsetR2}" rx="6" ry="4" fill="#232946" stroke="${p2.color}" stroke-width="2"/>
+              <!-- Leg -->
+              <rect x="${p2.x-3}" y="${p2.y+40}" width="6" height="32" rx="2" fill="#232946"/>
+              <!-- Sword -->
+              <g transform="rotate(${swordAngle2} ${swordX2} ${p2.y+65})">
+                <rect x="${swordX2-2}" y="${p2.y+50}" width="4" height="30" rx="2" fill="#fff" stroke="#bbb" stroke-width="2"/>
+                <rect x="${swordX2-1}" y="${p2.y+50}" width="2" height="30" rx="1" fill="#bfa76f"/>
+              </g>
+            </g>
+          `;
+          // For Player 2 sword
+          let swordLen = 48, swordW = 7;
+          let swordHilt = 16;
+          let swordSwingAngle2 = swordSwing2 ? (p2.facing === 'right' ? 90 : -90) : (p2.facing === 'right' ? 30 : -30);
+          let swordBaseX2 = p2.facing === 'right' ? p2.x+22 : p2.x-22;
+          let swordBaseY2 = p2.y+54;
+          svg.innerHTML += `
+            <g transform="rotate(${swordSwingAngle2} ${swordBaseX2} ${swordBaseY2})">
+              <rect x="${swordBaseX2-swordW/2}" y="${swordBaseY2}" width="${swordW}" height="${swordLen}" rx="2" fill="#fff" stroke="#bbb" stroke-width="2"/>
+              <rect x="${swordBaseX2-swordHilt/2}" y="${swordBaseY2+swordLen-4}" width="${swordHilt}" height="6" rx="2" fill="#bfa76f"/>
+            </g>
+          `;
+        }
+
+        // Dune Cyclone controls for both players
+        function setupDuneControls() {
+          window.addEventListener('keydown', duneKeyDown);
+          window.addEventListener('keyup', duneKeyUp);
+          duneAnimate();
+        }
+        function duneKeyDown(e) {
+          // Player 1 controls (WASD)
+          if (e.key === 'a' || e.key === 'A') duneKeys.a = true;
+          if (e.key === 'd' || e.key === 'D') duneKeys.d = true;
+          if (e.key === 'w' || e.key === 'W') duneKeys.w = true;
+          // Player 1 attack
+          if (e.key === 's' || e.key === 'S') tryPlayerAttack(1);
+          // Player 2 controls (Arrow keys)
+          if (e.key === 'ArrowLeft') duneKeys2.left = true;
+          if (e.key === 'ArrowRight') duneKeys2.right = true;
+          if (e.key === 'ArrowUp') duneKeys2.up = true;
+          // Player 2 attack
+          if (e.key === 'ArrowDown') tryPlayerAttack(2);
+        }
+        function duneKeyUp(e) {
+          // Player 1 controls (WASD)
+          if (e.key === 'a' || e.key === 'A') duneKeys.a = false;
+          if (e.key === 'd' || e.key === 'D') duneKeys.d = false;
+          if (e.key === 'w' || e.key === 'W') duneKeys.w = false;
+          // Player 2 controls (Arrow keys)
+          if (e.key === 'ArrowLeft') duneKeys2.left = false;
+          if (e.key === 'ArrowRight') duneKeys2.right = false;
+          if (e.key === 'ArrowUp') duneKeys2.up = false;
+        }
+        function duneAnimate() {
+          // Animate walking feet for Player 1
+          if (duneKeys.a || duneKeys.d) {
+            walkTimer1++;
+            if (walkTimer1 > 7) { walkFrame1 = 1 - walkFrame1; walkTimer1 = 0; }
+          } else {
+            walkFrame1 = 0;
+            walkTimer1 = 0;
+          }
+          // Animate walking feet for Player 2
+          if (duneKeys2.left || duneKeys2.right) {
+            walkTimer2++;
+            if (walkTimer2 > 7) { walkFrame2 = 1 - walkFrame2; walkTimer2 = 0; }
+          } else {
+            walkFrame2 = 0;
+            walkTimer2 = 0;
+          }
+          // Player 1 movement
+          if (duneKeys.a) {
+            dunePlayer1.vx = -duneMoveSpeed;
+            dunePlayer1.facing = 'left';
+          } else if (duneKeys.d) {
+            dunePlayer1.vx = duneMoveSpeed;
+            dunePlayer1.facing = 'right';
+          } else {
+            dunePlayer1.vx = 0;
+          }
+          // Player 1 jump
+          if (duneKeys.w && dunePlayer1.onGround) {
+            dunePlayer1.vy = duneJumpPower;
+            dunePlayer1.onGround = false;
+          }
+          
+          // Player 2 movement
+          if (duneKeys2.left) {
+            dunePlayer2.vx = -duneMoveSpeed;
+            dunePlayer2.facing = 'left';
+          } else if (duneKeys2.right) {
+            dunePlayer2.vx = duneMoveSpeed;
+            dunePlayer2.facing = 'right';
+          } else {
+            dunePlayer2.vx = 0;
+          }
+          // Player 2 jump
+          if (duneKeys2.up && dunePlayer2.onGround) {
+            dunePlayer2.vy = duneJumpPower;
+            dunePlayer2.onGround = false;
+          }
+          
+          // Apply physics to both players
+          // Player 1 physics
+          dunePlayer1.vy += duneGravity;
+          dunePlayer1.x += dunePlayer1.vx;
+          dunePlayer1.y += dunePlayer1.vy;
+          
+          // Player 2 physics
+          dunePlayer2.vy += duneGravity;
+          dunePlayer2.x += dunePlayer2.vx;
+          dunePlayer2.y += dunePlayer2.vy;
+          
+          // Collision detection for both players
+          dunePlayer1.onGround = false;
+          dunePlayer2.onGround = false;
+          
+          // Helper function to check collision with any object (including legs)
+          function checkCollision(player, obj) {
+            const playerLeft = player.x - 28;
+            const playerRight = player.x + 28;
+            const playerTop = player.y - 28;
+            const playerBottom = player.y + 28;
+            const playerLegBottom = player.y + 70; // Include feet in collision
+            
+            const objLeft = obj.x;
+            const objRight = obj.x + obj.w;
+            const objTop = obj.y;
+            const objBottom = obj.y + obj.h;
+            
+            return !(playerRight < objLeft || playerLeft > objRight || playerLegBottom < objTop || playerTop > objBottom);
+          }
+          
+          // Check collision with all objects (blocks, floor, walls)
+          const allObjects = [...duneBlocks, duneFloor, ...duneWalls];
+          
+          // Player 1 collision
+          for (let obj of allObjects) {
+            if (checkCollision(dunePlayer1, obj)) {
+              // Vertical collision (landing on top)
+              if (dunePlayer1.vy > 0 && dunePlayer1.y < obj.y) {
+                dunePlayer1.y = obj.y - 70;
+                dunePlayer1.vy = 0;
+                dunePlayer1.onGround = true;
+              }
+              // Horizontal collision (hitting sides)
+              else if (dunePlayer1.vx > 0 && dunePlayer1.x < obj.x) {
+                dunePlayer1.x = obj.x - 28;
+                dunePlayer1.vx = 0;
+              }
+              else if (dunePlayer1.vx < 0 && dunePlayer1.x > obj.x + obj.w) {
+                dunePlayer1.x = obj.x + obj.w + 28;
+                dunePlayer1.vx = 0;
+              }
+              // Ceiling collision
+              else if (dunePlayer1.vy < 0 && dunePlayer1.y > obj.y + obj.h) {
+                dunePlayer1.y = obj.y + obj.h + 28;
+                dunePlayer1.vy = 0;
+              }
+            }
+          }
+          
+          // Player 2 collision
+          for (let obj of allObjects) {
+            if (checkCollision(dunePlayer2, obj)) {
+              // Vertical collision (landing on top)
+              if (dunePlayer2.vy > 0 && dunePlayer2.y < obj.y) {
+                dunePlayer2.y = obj.y - 70;
+                dunePlayer2.vy = 0;
+                dunePlayer2.onGround = true;
+              }
+              // Horizontal collision (hitting sides)
+              else if (dunePlayer2.vx > 0 && dunePlayer2.x < obj.x) {
+                dunePlayer2.x = obj.x - 28;
+                dunePlayer2.vx = 0;
+              }
+              else if (dunePlayer2.vx < 0 && dunePlayer2.x > obj.x + obj.w) {
+                dunePlayer2.x = obj.x + obj.w + 28;
+                dunePlayer2.vx = 0;
+              }
+              // Ceiling collision
+              else if (dunePlayer2.vy < 0 && dunePlayer2.y > obj.y + obj.h) {
+                dunePlayer2.y = obj.y + obj.h + 28;
+                dunePlayer2.vy = 0;
+              }
+            }
+          }
+          
+          // Boundaries for both players (screen edges)
+          if (dunePlayer1.x < 28) dunePlayer1.x = 28;
+          if (dunePlayer1.x > 1000-28) dunePlayer1.x = 1000-28;
+          if (dunePlayer1.y > 600-28) {
+            dunePlayer1.y = 600-28;
+            dunePlayer1.vy = 0;
+            dunePlayer1.onGround = true;
+          }
+          
+          if (dunePlayer2.x < 28) dunePlayer2.x = 28;
+          if (dunePlayer2.x > 1000-28) dunePlayer2.x = 1000-28;
+          if (dunePlayer2.y > 600-28) {
+            dunePlayer2.y = 600-28;
+            dunePlayer2.vy = 0;
+            dunePlayer2.onGround = true;
+          }
+          
+          renderDuneScene();
+          requestAnimationFrame(duneAnimate);
+        }
+
+        // Attack logic
+        function tryPlayerAttack(playerNum) {
+          if (playerNum === 1) {
+            if (dunePlayer1.attackCooldown > 0 || dunePlayer1.health <= 0 || dunePlayer2.health <= 0) return;
+            dunePlayer2.health -= dunePlayer1.attackDmg;
+            if (dunePlayer2.health < 0) dunePlayer2.health = 0;
+            dunePlayer1.attackCooldown = dunePlayer1.attackCd * 60; // 60fps
+            swordSwing1 = true;
+            swordSwingTimer1 = 12; // 0.2s at 60fps
+          } else {
+            if (dunePlayer2.attackCooldown > 0 || dunePlayer2.health <= 0 || dunePlayer1.health <= 0) return;
+            dunePlayer1.health -= dunePlayer2.attackDmg;
+            if (dunePlayer1.health < 0) dunePlayer1.health = 0;
+            dunePlayer2.attackCooldown = dunePlayer2.attackCd * 60;
+            swordSwing2 = true;
+            swordSwingTimer2 = 12;
+          }
+        }
+    </script>
+</body>
+</html> 
