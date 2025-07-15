@@ -419,19 +419,11 @@
             document.getElementById('brawlerModal').style.display = 'none';
             if (turn === 1) {
                 pickedBrawler1 = char;
-                const stats = getBrawlerStats(char);
-                dunePlayer1.maxHealth = dunePlayer1.health = stats.health;
-                dunePlayer1.attackDmg = stats.dmg;
-                dunePlayer1.attackCd = stats.cd;
-                dunePlayer1.attackCooldown = 0;
+                dunePlayer1.maxHealth = dunePlayer1.health = getBrawlerHealth(char);
                 setBrawlerTurn(2);
             } else {
                 pickedBrawler2 = char;
-                const stats = getBrawlerStats(char);
-                dunePlayer2.maxHealth = dunePlayer2.health = stats.health;
-                dunePlayer2.attackDmg = stats.dmg;
-                dunePlayer2.attackCd = stats.cd;
-                dunePlayer2.attackCooldown = 0;
+                dunePlayer2.maxHealth = dunePlayer2.health = getBrawlerHealth(char);
                 showDuneBlankIfNeeded();
             }
         };
@@ -478,10 +470,7 @@
           onGround: false,
           health: 1700,
           maxHealth: 1700,
-          color: player1Color,
-          attackDmg: 100, // Added
-          attackCd: 1, // Added
-          attackCooldown: 0 // Added
+          color: player1Color
         };
         // Player 2 state for Dune Cyclone
         let dunePlayer2 = {
@@ -493,10 +482,7 @@
           onGround: false,
           health: 1700,
           maxHealth: 1700,
-          color: player2Color,
-          attackDmg: 100, // Added
-          attackCd: 1, // Added
-          attackCooldown: 0 // Added
+          color: player2Color
         };
         let duneGravity = 1.2;
         let duneJumpPower = -18;
@@ -518,34 +504,12 @@ let duneWalls = [
         let walkFrame1 = 0, walkTimer1 = 0;
         let walkFrame2 = 0, walkTimer2 = 0;
 
-        // Add sword swing state for both players
-        let swordSwing1 = false, swordSwing2 = false;
-        let swordSwingTimer1 = 0, swordSwingTimer2 = 0;
-
-        // Parse brawler health, basic attack damage, and cooldown from description
-        function getBrawlerStats(char) {
-          if (!char) return { health: 1700, dmg: 100, cd: 1 };
+        // Parse brawler health from description
+        function getBrawlerHealth(char) {
+          if (!char) return 1700;
           const desc = charDescriptions[char];
-          // Health
-          const healthMatch = desc && desc.match(/Health (\d+)/);
-          const health = healthMatch ? parseInt(healthMatch[1], 10) : 1700;
-          // Basic attack damage
-          let dmg = 100;
-          let cd = 1;
-          // Try to match "每 X 秒.*?(\d+) 伤" or "(\d+) DMG" or "(\d+)伤"
-          const dmgMatch = desc && desc.match(/每 ([\d.]+) 秒.*?(\d+) ?伤/);
-          if (dmgMatch) {
-            cd = parseFloat(dmgMatch[1]);
-            dmg = parseInt(dmgMatch[2], 10);
-          } else {
-            // fallback: try "(\d+) DMG"
-            const dmgMatch2 = desc && desc.match(/(\d+) ?DMG/);
-            if (dmgMatch2) dmg = parseInt(dmgMatch2[1], 10);
-            // fallback: try "(\d+)[伤|伤害]"
-            const dmgMatch3 = desc && desc.match(/(\d+)[伤|伤害]/);
-            if (dmgMatch3) dmg = parseInt(dmgMatch3[1], 10);
-          }
-          return { health, dmg, cd };
+          const match = desc && desc.match(/Health (\d+)/);
+          return match ? parseInt(match[1], 10) : 1700;
         }
 
         function showDuneBlankIfNeeded() {
@@ -570,6 +534,47 @@ let duneWalls = [
           const svg = document.getElementById('duneSVG');
           if (!svg) return;
           svg.innerHTML = '';
+          // Add SVG defs for gradients and fire glow at the top of the SVG:
+          svg.innerHTML += `
+            <defs>
+              <linearGradient id="bladeGradient1" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stop-color="#fff"/>
+                <stop offset="100%" stop-color="#b0b0b0"/>
+              </linearGradient>
+              <linearGradient id="bladeGradient2" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stop-color="#fff"/>
+                <stop offset="100%" stop-color="#b0b0b0"/>
+              </linearGradient>
+              <linearGradient id="fireGradient1" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stop-color="#fffbe0"/>
+                <stop offset="40%" stop-color="#ffb400"/>
+                <stop offset="80%" stop-color="#ff4c60"/>
+                <stop offset="100%" stop-color="#ff1e3c"/>
+              </linearGradient>
+              <linearGradient id="fireGradient2" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stop-color="#fffbe0"/>
+                <stop offset="40%" stop-color="#ffb400"/>
+                <stop offset="80%" stop-color="#ff4c60"/>
+                <stop offset="100%" stop-color="#ff1e3c"/>
+              </linearGradient>
+              <filter id="fireGlow1" x="-20" y="-20" width="40" height="60">
+                <feGaussianBlur stdDeviation="4" result="blur"/>
+                <feColorMatrix type="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 1 0"/>
+                <feMerge>
+                  <feMergeNode/>
+                  <feMergeNode in="SourceGraphic"/>
+                </feMerge>
+              </filter>
+              <filter id="fireGlow2" x="-20" y="-20" width="40" height="60">
+                <feGaussianBlur stdDeviation="4" result="blur"/>
+                <feColorMatrix type="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 1 0"/>
+                <feMerge>
+                  <feMergeNode/>
+                  <feMergeNode in="SourceGraphic"/>
+                </feMerge>
+              </filter>
+            </defs>
+          `;
           // Draw walls
           duneWalls.forEach(wall => {
             svg.innerHTML += `<rect x="${wall.x}" y="${wall.y}" width="${wall.w}" height="${wall.h}" fill="#444" stroke="#222" stroke-width="2"/>`;
@@ -598,6 +603,9 @@ let duneWalls = [
           // For Player 1:
           let footYOffsetL = walkFrame1 === 1 ? 4 : 0;
           let footYOffsetR = walkFrame1 === 0 ? 4 : 0;
+          // Leg swing angles for walk cycle
+          let legAngleL = (walkFrame1 === 1 ? 22 : -10); // left leg swings forward/back
+          let legAngleR = (walkFrame1 === 0 ? 22 : -10); // right leg swings forward/back
           svg.innerHTML += `
             <g>
               ${healthBar(p1.x-40, p1.y-60, 80, 16, p1.health, p1.maxHealth, p1.color)}
@@ -608,24 +616,30 @@ let duneWalls = [
               <path d="M${p1.x-7},${p1.y+8} Q${p1.x},${p1.y+16} ${p1.x+7},${p1.y+8}" stroke="#fff" stroke-width="2" fill="none"/>
               <!-- Body -->
               <rect x="${p1.x-10}" y="${p1.y+28}" width="20" height="40" rx="8" fill="${p1.color}"/>
+              <!-- Left Leg -->
+              <rect x="${p1.x-7}" y="${p1.y+40}" width="6" height="32" rx="2" fill="#232946" transform="rotate(${legAngleL} ${p1.x-4} ${p1.y+40})"/>
+              <!-- Right Leg -->
+              <rect x="${p1.x+1}" y="${p1.y+40}" width="6" height="32" rx="2" fill="#232946" transform="rotate(${legAngleR} ${p1.x+4} ${p1.y+40})"/>
               <!-- Feet -->
               <ellipse cx="${p1.x-6}" cy="${p1.y+70+footYOffsetL}" rx="6" ry="4" fill="#232946" stroke="${p1.color}" stroke-width="2"/>
               <ellipse cx="${p1.x+6}" cy="${p1.y+70+footYOffsetR}" rx="6" ry="4" fill="#232946" stroke="${p1.color}" stroke-width="2"/>
-              <!-- Leg -->
-              <rect x="${p1.x-3}" y="${p1.y+40}" width="6" height="32" rx="2" fill="#232946"/>
               <!-- Sword -->
               <g transform="rotate(${swordAngle} ${swordX} ${p1.y+65})">
-                <rect x="${swordX-2}" y="${p1.y+50}" width="4" height="30" rx="2" fill="#fff" stroke="#bbb" stroke-width="2"/>
-                <rect x="${swordX-1}" y="${p1.y+50}" width="2" height="30" rx="1" fill="#bfa76f"/>
+                <!-- Sword blade -->
+                <rect x="${swordX-2}" y="${p1.y+50}" width="4" height="26" rx="1.2" fill="url(#bladeGradient1)" stroke="#fffbe0" stroke-width="1.2"/>
+                <!-- Sword tip -->
+                <polygon points="${swordX-2},${p1.y+50} ${swordX+2},${p1.y+50} ${swordX},${p1.y+44}" fill="#fffbe0"/>
+                <!-- Guard -->
+                <rect x="${swordX-7}" y="${p1.y+72}" width="14" height="4" rx="2" fill="#ffb400" stroke="#b97a00" stroke-width="1"/>
+                <!-- Hilt -->
+                <rect x="${swordX-1.2}" y="${p1.y+76}" width="2.4" height="8" rx="1" fill="#b97a00"/>
+                <!-- Fire effect -->
+                <g filter="url(#fireGlow1)">
+                  <rect x="${swordX-3.5}" y="${p1.y+50}" width="7" height="26" rx="3.5" fill="url(#fireGradient1)" opacity="0.7"/>
+                </g>
               </g>
             </g>
           `;
-          // For Player 1 cooldown display
-          let cd1 = dunePlayer1.attackCooldown > 0 ? (dunePlayer1.attackCooldown/60).toFixed(2) : 'Ready';
-          svg.innerHTML += `<text x="${p1.x}" y="${p1.y-75}" text-anchor="middle" font-size="16" fill="#fff" font-weight="bold">CD: ${cd1}</text>`;
-          // For Player 2 cooldown display
-          let cd2 = dunePlayer2.attackCooldown > 0 ? (dunePlayer2.attackCooldown/60).toFixed(2) : 'Ready';
-          svg.innerHTML += `<text x="${p2.x}" y="${p2.y-75}" text-anchor="middle" font-size="16" fill="#fff" font-weight="bold">CD: ${cd2}</text>`;
           // Draw Player 2
           let p2 = dunePlayer2;
           let swordX2 = p2.facing === 'right' ? p2.x+32 : p2.x-32;
@@ -633,6 +647,8 @@ let duneWalls = [
           // For Player 2:
           let footYOffsetL2 = walkFrame2 === 1 ? 4 : 0;
           let footYOffsetR2 = walkFrame2 === 0 ? 4 : 0;
+          let legAngleL2 = (walkFrame2 === 1 ? 22 : -10);
+          let legAngleR2 = (walkFrame2 === 0 ? 22 : -10);
           svg.innerHTML += `
             <g>
               ${healthBar(p2.x-40, p2.y-60, 80, 16, p2.health, p2.maxHealth, p2.color)}
@@ -643,28 +659,28 @@ let duneWalls = [
               <path d="M${p2.x-7},${p2.y+8} Q${p2.x},${p2.y+16} ${p2.x+7},${p2.y+8}" stroke="#fff" stroke-width="2" fill="none"/>
               <!-- Body -->
               <rect x="${p2.x-10}" y="${p2.y+28}" width="20" height="40" rx="8" fill="${p2.color}"/>
+              <!-- Left Leg -->
+              <rect x="${p2.x-7}" y="${p2.y+40}" width="6" height="32" rx="2" fill="#232946" transform="rotate(${legAngleL2} ${p2.x-4} ${p2.y+40})"/>
+              <!-- Right Leg -->
+              <rect x="${p2.x+1}" y="${p2.y+40}" width="6" height="32" rx="2" fill="#232946" transform="rotate(${legAngleR2} ${p2.x+4} ${p2.y+40})"/>
               <!-- Feet -->
               <ellipse cx="${p2.x-6}" cy="${p2.y+70+footYOffsetL2}" rx="6" ry="4" fill="#232946" stroke="${p2.color}" stroke-width="2"/>
               <ellipse cx="${p2.x+6}" cy="${p2.y+70+footYOffsetR2}" rx="6" ry="4" fill="#232946" stroke="${p2.color}" stroke-width="2"/>
-              <!-- Leg -->
-              <rect x="${p2.x-3}" y="${p2.y+40}" width="6" height="32" rx="2" fill="#232946"/>
               <!-- Sword -->
               <g transform="rotate(${swordAngle2} ${swordX2} ${p2.y+65})">
-                <rect x="${swordX2-2}" y="${p2.y+50}" width="4" height="30" rx="2" fill="#fff" stroke="#bbb" stroke-width="2"/>
-                <rect x="${swordX2-1}" y="${p2.y+50}" width="2" height="30" rx="1" fill="#bfa76f"/>
+                <!-- Sword blade -->
+                <rect x="${swordX2-2}" y="${p2.y+50}" width="4" height="26" rx="1.2" fill="url(#bladeGradient2)" stroke="#fffbe0" stroke-width="1.2"/>
+                <!-- Sword tip -->
+                <polygon points="${swordX2-2},${p2.y+50} ${swordX2+2},${p2.y+50} ${swordX2},${p2.y+44}" fill="#fffbe0"/>
+                <!-- Guard -->
+                <rect x="${swordX2-7}" y="${p2.y+72}" width="14" height="4" rx="2" fill="#ffb400" stroke="#b97a00" stroke-width="1"/>
+                <!-- Hilt -->
+                <rect x="${swordX2-1.2}" y="${p2.y+76}" width="2.4" height="8" rx="1" fill="#b97a00"/>
+                <!-- Fire effect -->
+                <g filter="url(#fireGlow2)">
+                  <rect x="${swordX2-3.5}" y="${p2.y+50}" width="7" height="26" rx="3.5" fill="url(#fireGradient2)" opacity="0.7"/>
+                </g>
               </g>
-            </g>
-          `;
-          // For Player 2 sword
-          let swordLen = 48, swordW = 7;
-          let swordHilt = 16;
-          let swordSwingAngle2 = swordSwing2 ? (p2.facing === 'right' ? 90 : -90) : (p2.facing === 'right' ? 30 : -30);
-          let swordBaseX2 = p2.facing === 'right' ? p2.x+22 : p2.x-22;
-          let swordBaseY2 = p2.y+54;
-          svg.innerHTML += `
-            <g transform="rotate(${swordSwingAngle2} ${swordBaseX2} ${swordBaseY2})">
-              <rect x="${swordBaseX2-swordW/2}" y="${swordBaseY2}" width="${swordW}" height="${swordLen}" rx="2" fill="#fff" stroke="#bbb" stroke-width="2"/>
-              <rect x="${swordBaseX2-swordHilt/2}" y="${swordBaseY2+swordLen-4}" width="${swordHilt}" height="6" rx="2" fill="#bfa76f"/>
             </g>
           `;
         }
@@ -680,14 +696,10 @@ let duneWalls = [
           if (e.key === 'a' || e.key === 'A') duneKeys.a = true;
           if (e.key === 'd' || e.key === 'D') duneKeys.d = true;
           if (e.key === 'w' || e.key === 'W') duneKeys.w = true;
-          // Player 1 attack
-          if (e.key === 's' || e.key === 'S') tryPlayerAttack(1);
           // Player 2 controls (Arrow keys)
           if (e.key === 'ArrowLeft') duneKeys2.left = true;
           if (e.key === 'ArrowRight') duneKeys2.right = true;
           if (e.key === 'ArrowUp') duneKeys2.up = true;
-          // Player 2 attack
-          if (e.key === 'ArrowDown') tryPlayerAttack(2);
         }
         function duneKeyUp(e) {
           // Player 1 controls (WASD)
@@ -853,25 +865,6 @@ let duneWalls = [
           
           renderDuneScene();
           requestAnimationFrame(duneAnimate);
-        }
-
-        // Attack logic
-        function tryPlayerAttack(playerNum) {
-          if (playerNum === 1) {
-            if (dunePlayer1.attackCooldown > 0 || dunePlayer1.health <= 0 || dunePlayer2.health <= 0) return;
-            dunePlayer2.health -= dunePlayer1.attackDmg;
-            if (dunePlayer2.health < 0) dunePlayer2.health = 0;
-            dunePlayer1.attackCooldown = dunePlayer1.attackCd * 60; // 60fps
-            swordSwing1 = true;
-            swordSwingTimer1 = 12; // 0.2s at 60fps
-          } else {
-            if (dunePlayer2.attackCooldown > 0 || dunePlayer2.health <= 0 || dunePlayer1.health <= 0) return;
-            dunePlayer1.health -= dunePlayer2.attackDmg;
-            if (dunePlayer1.health < 0) dunePlayer1.health = 0;
-            dunePlayer2.attackCooldown = dunePlayer2.attackCd * 60;
-            swordSwing2 = true;
-            swordSwingTimer2 = 12;
-          }
         }
     </script>
 </body>
